@@ -258,10 +258,4 @@ logging.basicConfig(level=logging.DEBUG)
 ## 🎯 Quick Start Command
 
 ```bash
-# Chạy ngay lập tức:
-cd E:\project\ISAS && python run_complete_analysis.py
-```
 
-**🎉 Chúc bạn phân tích thành công và đạt kết quả cao trong ISAS Challenge 2025!** #   w a i e d u _ I S A S 
- 
- 
