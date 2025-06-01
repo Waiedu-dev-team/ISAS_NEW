@@ -17,11 +17,8 @@ Date: 2024
 import pandas as pd
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from matplotlib.animation import FuncAnimation, FFMpegWriter
-from collections import Counter
 import os
+from collections import Counter
 from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
@@ -104,9 +101,9 @@ class SkeletonVideoGenerator:
         """Load keypoint data cho user cụ thể"""
         
         if with_labels:
-            file_path = f"Train_Data/keypointlabel/keypoints_with_labels_{user_id}.csv"
+            file_path = f"../Train_Data/keypointlabel/keypoints_with_labels_{user_id}.csv"
         else:
-            file_path = f"Train_Data/keypoint/video_{user_id}.csv"
+            file_path = f"../Train_Data/keypoint/video_{user_id}.csv"
             
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File không tồn tại: {file_path}")
@@ -160,23 +157,24 @@ class SkeletonVideoGenerator:
         right_hip = keypoints[12]
         
         # Tính center point
-        if not (np.allclose(left_shoulder, 0) and np.allclose(right_shoulder, 0)):
+        if not (np.linalg.norm(left_shoulder) == 0 and np.linalg.norm(right_shoulder) == 0):
             center = (left_shoulder + right_shoulder) / 2
-        elif not (np.allclose(left_hip, 0) and np.allclose(right_hip, 0)):
+        elif not (np.linalg.norm(left_hip) == 0 and np.linalg.norm(right_hip) == 0):
             center = (left_hip + right_hip) / 2
         else:
-            center = np.mean(keypoints[keypoints.sum(axis=1) != 0], axis=0)
+            valid_keypoints = keypoints[np.linalg.norm(keypoints, axis=1) > 0]
+            center = np.mean(valid_keypoints, axis=0) if len(valid_keypoints) > 0 else np.array([self.video_width//2, self.video_height//2])
         
         # Tính scale dựa trên shoulder width hoặc body height
-        shoulder_width = np.linalg.norm(right_shoulder - left_shoulder) if not (np.allclose(left_shoulder, 0) and np.allclose(right_shoulder, 0)) else 100
+        shoulder_width = np.linalg.norm(right_shoulder - left_shoulder) if not (np.linalg.norm(left_shoulder) == 0 and np.linalg.norm(right_shoulder) == 0) else 100
         
         # Tính body height (từ nose đến ankle trung bình)
         nose = keypoints[0]
         left_ankle = keypoints[15]
         right_ankle = keypoints[16]
         
-        if not np.allclose(nose, 0) and not (np.allclose(left_ankle, 0) and np.allclose(right_ankle, 0)):
-            ankle_center = (left_ankle + right_ankle) / 2 if not np.allclose(left_ankle, 0) and not np.allclose(right_ankle, 0) else left_ankle if not np.allclose(left_ankle, 0) else right_ankle
+        if not np.linalg.norm(nose) == 0 and not (np.linalg.norm(left_ankle) == 0 and np.linalg.norm(right_ankle) == 0):
+            ankle_center = (left_ankle + right_ankle) / 2 if not np.linalg.norm(left_ankle) == 0 and not np.linalg.norm(right_ankle) == 0 else left_ankle if not np.linalg.norm(left_ankle) == 0 else right_ankle
             body_height = np.linalg.norm(nose - ankle_center)
         else:
             body_height = shoulder_width * 4  # Estimate
@@ -226,7 +224,7 @@ class SkeletonVideoGenerator:
             end_point = keypoints[end_idx]
             
             # Skip nếu keypoint bị missing
-            if np.allclose(start_point, 0) or np.allclose(end_point, 0):
+            if np.linalg.norm(start_point) == 0 or np.linalg.norm(end_point) == 0:
                 continue
                 
             # Chọn màu
@@ -242,7 +240,7 @@ class SkeletonVideoGenerator:
         
         # Vẽ keypoints
         for i, point in enumerate(keypoints):
-            if np.allclose(point, 0):  # Skip missing keypoints
+            if np.linalg.norm(point) == 0:  # Skip missing keypoints
                 continue
                 
             # Chọn màu cho keypoint
@@ -278,47 +276,53 @@ class SkeletonVideoGenerator:
             print(f"⚠️ Giới hạn {max_frames} frames để test")
         
         # Tạo output filename
-        output_dir = "output/videos"
+        output_dir = r"E:\project\ISAS\output\videos"
         os.makedirs(output_dir, exist_ok=True)
         
         label_suffix = "_with_labels" if with_labels else "_skeleton_only"
         output_file = f"{output_dir}/user_{user_id}{label_suffix}.mp4"
         
-        # Setup matplotlib figure
-        fig, ax = plt.subplots(figsize=(self.video_width/100, self.video_height/100), dpi=100)
-        fig.patch.set_facecolor('black')
+        print(f"🚀 Bắt đầu tạo video: {output_file}")
         
-        # Animation function
-        def animate(frame_idx):
-            if frame_idx >= len(df):
-                return
-                
+        # Setup OpenCV VideoWriter
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        video_writer = cv2.VideoWriter(output_file, fourcc, self.fps, (self.video_width, self.video_height))
+        
+        # Tạo từng frame
+        for frame_idx in range(len(df)):
             row = df.iloc[frame_idx]
+            
+            # Tạo frame trống (đen)
+            frame = np.zeros((self.video_height, self.video_width, 3), dtype=np.uint8)
             
             # Extract keypoints
             keypoints = self.extract_keypoints_from_row(row)
             
             # Main skeleton (normalized)
             normalized_keypoints = self.normalize_skeleton(keypoints)
-            self.draw_skeleton(ax, normalized_keypoints, alpha=1.0, linewidth=3)
+            
+            # Vẽ skeleton lên frame
+            self.draw_skeleton_on_frame(frame, normalized_keypoints)
             
             # Picture-in-picture (original scale)
-            pip_ax = fig.add_axes([0.7, 0.05, 0.25, 0.25])  # [left, bottom, width, height]
-            pip_ax.set_facecolor('black')
+            pip_width = int(self.video_width * self.pip_size)
+            pip_height = int(self.video_height * self.pip_size)
+            pip_x = self.video_width - pip_width - 20  # 20px margin từ bên phải
+            pip_y = self.video_height - pip_height - 20  # 20px margin từ dưới
+            
+            # Tạo PiP frame
+            pip_frame = np.zeros((pip_height, pip_width, 3), dtype=np.uint8)
             
             # Scale original keypoints để fit trong PiP
             original_keypoints = keypoints.copy()
-            if not np.allclose(original_keypoints, 0).all():
+            if not np.all(np.linalg.norm(original_keypoints, axis=1) == 0):
                 # Find bounding box
-                valid_points = original_keypoints[~np.allclose(original_keypoints, 0, axis=1)]
+                valid_points = original_keypoints[np.linalg.norm(original_keypoints, axis=1) > 0]
                 if len(valid_points) > 0:
                     min_x, min_y = valid_points.min(axis=0)
                     max_x, max_y = valid_points.max(axis=0)
                     
                     # Scale để fit trong PiP
-                    pip_width = self.video_width * self.pip_size
-                    pip_height = self.video_height * self.pip_size
-                    
                     scale_x = pip_width / (max_x - min_x) if (max_x - min_x) > 0 else 1
                     scale_y = pip_height / (max_y - min_y) if (max_y - min_y) > 0 else 1
                     scale = min(scale_x, scale_y) * 0.8  # 80% để có margin
@@ -326,14 +330,14 @@ class SkeletonVideoGenerator:
                     # Center trong PiP
                     original_keypoints = (original_keypoints - [min_x, min_y]) * scale
                     pip_center = np.array([pip_width/2, pip_height/2])
-                    current_center = np.mean(original_keypoints[~np.allclose(original_keypoints, 0, axis=1)], axis=0) if len(original_keypoints[~np.allclose(original_keypoints, 0, axis=1)]) > 0 else np.array([0, 0])
+                    current_center = np.mean(original_keypoints[np.linalg.norm(original_keypoints, axis=1) > 0], axis=0) if len(original_keypoints[np.linalg.norm(original_keypoints, axis=1) > 0]) > 0 else np.array([0, 0])
                     original_keypoints = original_keypoints - current_center + pip_center
             
-            self.draw_skeleton(pip_ax, original_keypoints, alpha=0.8, linewidth=2)
-            pip_ax.set_xlim(0, self.video_width * self.pip_size)
-            pip_ax.set_ylim(0, self.video_height * self.pip_size)
-            pip_ax.axis('off')
-            pip_ax.invert_yaxis()
+            # Vẽ skeleton lên PiP
+            self.draw_skeleton_on_frame(pip_frame, original_keypoints, alpha=0.8, linewidth=1)
+            
+            # Ghép PiP vào frame chính
+            frame[pip_y:pip_y+pip_height, pip_x:pip_x+pip_width] = pip_frame
             
             # Add labels nếu có
             if with_labels:
@@ -344,33 +348,78 @@ class SkeletonVideoGenerator:
                     action_label = row[action_col] if not pd.isna(row[action_col]) else "Unknown"
                     
                     # Hiển thị label
-                    ax.text(50, 50, f"Activity: {action_label}", 
-                           fontsize=16, color='white', weight='bold',
-                           bbox=dict(boxstyle="round,pad=0.3", facecolor='black', alpha=0.7))
+                    cv2.putText(frame, f"Activity: {action_label}", (50, 50), 
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
             
             # Add frame info
             timestamp = frame_idx / self.fps
-            ax.text(self.video_width - 200, 50, f"Frame: {frame_idx}\nTime: {timestamp:.2f}s", 
-                   fontsize=12, color='white', ha='right',
-                   bbox=dict(boxstyle="round,pad=0.3", facecolor='black', alpha=0.7))
+            cv2.putText(frame, f"Frame: {frame_idx}", (self.video_width - 200, 50), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            cv2.putText(frame, f"Time: {timestamp:.2f}s", (self.video_width - 200, 70), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             
-            print(f"\r🎬 Đang xử lý frame {frame_idx+1}/{len(df)} ({(frame_idx+1)/len(df)*100:.1f}%)", end='', flush=True)
+            # Viết frame vào video
+            video_writer.write(frame)
+            
+            # Progress
+            if frame_idx % 100 == 0 or frame_idx == len(df) - 1:
+                print(f"\r🎬 Đang xử lý frame {frame_idx+1}/{len(df)} ({(frame_idx+1)/len(df)*100:.1f}%)", end='', flush=True)
         
-        # Create animation
-        print(f"🚀 Bắt đầu tạo video: {output_file}")
-        
-        anim = FuncAnimation(fig, animate, frames=len(df), interval=1000/self.fps, repeat=False)
-        
-        # Save video
-        writer = FFMpegWriter(fps=self.fps, metadata=dict(artist='ISAS Challenge 2025'), bitrate=1800)
-        anim.save(output_file, writer=writer, progress_callback=lambda i, n: None)
-        
-        plt.close(fig)
+        # Đóng video writer
+        video_writer.release()
         
         print(f"\n✅ Video đã được tạo: {output_file}")
         print(f"📊 Thông tin: {len(df)} frames, {len(df)/self.fps:.1f} giây, {self.fps} FPS")
         
         return output_file
+    
+    def draw_skeleton_on_frame(self, frame, keypoints, alpha=1.0, linewidth=2):
+        """Vẽ skeleton lên OpenCV frame"""
+        
+        # Vẽ connections
+        for connection in self.skeleton_connections:
+            start_idx, end_idx = connection
+            start_point = keypoints[start_idx]
+            end_point = keypoints[end_idx]
+            
+            # Skip nếu keypoint bị missing
+            if np.linalg.norm(start_point) == 0 or np.linalg.norm(end_point) == 0:
+                continue
+                
+            # Chọn màu (BGR format cho OpenCV)
+            color_hex = self.body_colors.get(connection, '#FFFFFF')
+            # Convert hex to BGR
+            color_rgb = tuple(int(color_hex[i:i+2], 16) for i in (1, 3, 5))
+            color_bgr = (color_rgb[2], color_rgb[1], color_rgb[0])  # RGB to BGR
+            
+            # Vẽ line
+            cv2.line(frame, 
+                    (int(start_point[0]), int(start_point[1])), 
+                    (int(end_point[0]), int(end_point[1])), 
+                    color_bgr, linewidth)
+        
+        # Vẽ keypoints
+        for i, point in enumerate(keypoints):
+            if np.linalg.norm(point) == 0:  # Skip missing keypoints
+                continue
+                
+            # Chọn màu cho keypoint
+            if i == 0:  # nose
+                color_bgr = (0, 215, 255)  # FFD700 -> BGR
+            elif i in [1, 2, 3, 4]:  # face
+                color_bgr = (0, 215, 255)  # FFD700 -> BGR
+            elif i in [5, 7, 9]:  # left arm
+                color_bgr = (0, 255, 0)   # 00FF00 -> BGR
+            elif i in [6, 8, 10]:  # right arm
+                color_bgr = (255, 128, 0) # 0080FF -> BGR
+            elif i in [11, 13, 15]:  # left leg
+                color_bgr = (255, 0, 255) # FF00FF -> BGR
+            elif i in [12, 14, 16]:  # right leg
+                color_bgr = (0, 128, 255) # FF8000 -> BGR
+            else:
+                color_bgr = (255, 255, 255)  # White
+            
+            cv2.circle(frame, (int(point[0]), int(point[1])), 4, color_bgr, -1)
     
     def create_all_videos(self, max_frames_per_video=None):
         """Tạo tất cả 8 videos cho 4 users"""
@@ -413,12 +462,11 @@ def main():
     # Khởi tạo generator
     generator = SkeletonVideoGenerator()
     
-    # Tạo tất cả videos (limit frames để test nhanh)
-    # Bỏ max_frames=None để tạo video đầy đủ
-    videos = generator.create_all_videos(max_frames_per_video=1000)  # 1000 frames = 33 giây để test
+    # Tạo tất cả videos (load hết tất cả frames)
+    videos = generator.create_all_videos(max_frames_per_video=None)  # None = load hết data
     
-    print(f"\n💡 Để tạo video đầy đủ, thay đổi max_frames_per_video=None")
-    print(f"📁 Videos được lưu trong: output/videos/")
+    print(f"\n💡 Videos được tạo với toàn bộ data")
+    print(f"📁 Videos được lưu trong: E:\\project\\ISAS\\output\\videos\\")
 
 
 if __name__ == "__main__":
