@@ -1,0 +1,95 @@
+Dữ Liệu Huấn Luyện
+
+1. Dữ liệu huấn luyện được cung cấp là dữ liệu từ 4 đối tượng trong 3 thư mục với cấu trúc sau:
+
+- keypointlabel
+----keypoints_with_labels_userID.csv
+..
+..
+
+- keypoints
+----video_userID.csv
+..
+..
+
+- timetable
+-- csv
+----userID.csv
+..
+..
+
+-- srt
+userID_vrew.srt
+..
+..
+
+2. Dữ Liệu Huấn Luyện
+A: Keypoints tư thế thô với nhật ký thời gian cho bốn người tham gia
+Chứa keypoints liên tục từng khung hình (30 fps) cho tất cả các phiên hoạt động. Bao gồm timestamp chính xác cho mỗi hoạt động được gán nhãn.
+
+B: Các mẫu hoạt động đã được phân đoạn trước với nhãn liên quan
+Bao gồm cột nhãn hoạt động với tư thế đã được trích xuất. Định dạng sẵn sàng để huấn luyện cho việc tạo mẫu nhanh.
+
+Tùy chọn 1 phù hợp cho những người muốn thử nghiệm với phân đoạn tùy chỉnh, trong khi Tùy chọn 2 đã được chú thích và định dạng sẵn cho phân loại.
+Bạn có thể sử dụng trực tiếp keypointlabel nơi keypoints được chú thích với nhãn từ timetable hoặc sử dụng keypoints và timetable để tự làm chú thích.
+Kiểm tra các sự không nhất quán trong việc gán nhãn như 'biting' và 'biting nails'
+
+Các hoạt động bao gồm:
+|--------------------------|---------------------|
+|         Hoạt Động        |    Loại Hành Vi     |
+|--------------------------|---------------------|
+|     Ngồi yên lặng        |        Bình thường  | 
+|      Sử dụng điện thoại  |        Bình thường  | 
+|          Đi bộ           |        Bình thường  | 
+|      Ăn đồ ăn vặt        |        Bình thường  | 
+|      Đập đầu             |        Bất thường   | 
+|   Ném đồ vật             |        Bất thường   |
+|          Tấn công        |        Bất thường   |
+|      Cắn móng tay        |        Bất thường   |
+|--------------------------|---------------------|
+
+3. Mục Tiêu: Người tham gia được kỳ vọng:
+
+> A. Nhận dạng và phân loại các hoạt động từ dữ liệu tư thế dựa trên keypoint được cung cấp trong bộ dữ liệu kiểm tra được chia sẻ.
+Phân biệt giữa các hoạt động bình thường và bất thường chỉ dựa trên các chuỗi tư thế ẩn danh.
+
+> B. Phát triển một mô hình tổng quát cải thiện việc phát hiện hoạt động bất thường bằng chiến lược Leave-One-Subject-Out (LOSO).
+Huấn luyện trên các đối tượng đã cho và dự đoán trên các đối tượng chưa thấy để mô phỏng khả năng tổng quát hóa thế giới thực cho các cá nhân mới.
+
+4. Thử Thách trong Bộ Dữ Liệu
+Người tham gia được khuyến khích tính đến các phức tạp thế giới thực sau đây trong việc phát triển mô hình:
+
+**Mất Cân Bằng Dữ Liệu
+Các hoạt động bình thường thường xuyên hơn các hoạt động bất thường, mô phỏng phân phối thế giới thực.
+
+**Các Hoạt Động Bất Thường Không Đều và Không Thể Dự Đoán
+Các hành vi bất thường như tấn công hoặc ném đồ xảy ra đột ngột và thay đổi rất lớn về hình thức và thời gian, khiến chúng khó mô hình hóa.
+
+**Biến Thiên Thời Gian
+Các hoạt động bất thường có xu hướng đột ngột, trong khi các hoạt động bình thường nhất quán hơn hoặc kéo dài.
+
+**Biến Thiên Đối Tượng
+Người tham gia khác nhau về kích thước cơ thể, tư thế và cách họ thực hiện cùng một hoạt động.
+
+Bạn có thể xác nhận các thử thách còn lại từ dữ liệu.
+
+5. Dữ Liệu Kiểm Tra (sẽ được cung cấp sau)
+> A. Dữ liệu keypoint từ người tham gia chưa thấy
+** Người tham gia phải gửi nhãn hoạt động dự đoán cho mỗi hàng timestamp.
+
+> B. Đối với mục tiêu B, chúng tôi sẽ cung cấp thêm người tham gia thứ 5 với nhãn cho đối tượng thứ 5 để đánh giá Leave-One-Subject-Out.
+** Đối với B, dự đoán A nên được các đội gửi trước để bạn có thể nhận được file.
+
+6. Metrics Đánh Giá
+> A. Phân loại hoạt động
+** Độ chính xác, F1-Score (Bất thường), Độ chính xác và Độ nhạy
+
+> B. Hiệu suất mô hình trên đánh giá LOSO
+** Sau khi hoàn thành phân loại, chúng tôi sẽ cung cấp nhãn cho đánh giá 5 người với Leave One Subject Out.
+
+7. Định Dạng Nộp Bài. Người tham gia phải nộp:
+> A. File csv với: participant_id, timestamp, predicted_label
+
+> B. Báo cáo ngắn mô tả phương pháp, phát hiện và đánh giá cho LOSO.
+
+GANBATTE! 
