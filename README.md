@@ -1,8 +1,4 @@
----
-noteId: "262bdcc03eef11f0a6dfff0136c67976"
-tags: []
 
----
 
 # 🚀 ISAS Challenge 2025 - Complete Data Analysis Suite
 
@@ -266,5 +262,4 @@ logging.basicConfig(level=logging.DEBUG)
 cd E:\project\ISAS && python run_complete_analysis.py
 ```
 
-**🎉 Chúc bạn phân tích thành công và đạt kết quả cao trong ISAS Challenge 2025!** #   w a i e d u _ I S A S  
- 
+**🎉 Chúc bạn phân tích thành công và đạt kết quả cao trong ISAS Challenge 2025!** #
