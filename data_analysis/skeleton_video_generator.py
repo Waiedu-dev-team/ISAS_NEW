@@ -276,7 +276,7 @@ class SkeletonVideoGenerator:
             print(f"⚠️ Giới hạn {max_frames} frames để test")
         
         # Tạo output filename
-        output_dir = r"E:\project\ISAS\output\videos"
+        output_dir = "../output/videos"
         os.makedirs(output_dir, exist_ok=True)
         
         label_suffix = "_with_labels" if with_labels else "_skeleton_only"
@@ -466,7 +466,7 @@ def main():
     videos = generator.create_all_videos(max_frames_per_video=None)  # None = load hết data
     
     print(f"\n💡 Videos được tạo với toàn bộ data")
-    print(f"📁 Videos được lưu trong: E:\\project\\ISAS\\output\\videos\\")
+    print(f"📁 Videos được lưu trong: ../output/videos/")
 
 
 if __name__ == "__main__":
