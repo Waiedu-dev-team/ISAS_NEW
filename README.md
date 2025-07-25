@@ -1,46 +1,36 @@
 # ISAS Human Activity Recognition (HAR) - Skeleton-based Action Classification
 
-## Hướng dẫn sử dụng (Local Jupyter Notebook)
+## Hướng dẫn sử dụng notebook và dữ liệu
 
-**1. Chuẩn bị môi trường**
-- Cài đặt Python >= 3.8
-- Cài đặt các thư viện cần thiết:
-```bash
-pip install -r requirements.txt
-```
+### 1. **Chạy LOCAL trên Jupyter Notebook**
+- **Notebook:** `Copy_of_ISAS_BEST_(2)_Locally_versioned.ipynb`
+- **Đường dẫn dữ liệu:**
+  ```python
+  base_path = '/workspace/isas/ISAS_NEW/'
+  train_data_path = os.path.join(base_path, 'Train_Data')
+  ```
+- **Yêu cầu:**
+  - Đặt folder `Train_Data` đúng theo đường dẫn trên (cùng cấp với notebook hoặc đúng cấu trúc)
+  - Chạy tuần tự từ đầu đến cuối để thực hiện toàn bộ pipeline (gắn nhãn, feature engineering, training, LOSO evaluation)
 
-**2. Tải dataset**
-- Tải toàn bộ folder `Train_Data` (bao gồm các file keypoint, timetable, ...)
-- Đảm bảo cấu trúc thư mục như sau:
-```
-ISAS/
-├── Copy_of_ISAS_BEST(2).ipynb
-├── Train_Data/
-│   ├── keypoint/
-│   ├── timetable/
-│   └── ...
-```
-
-**3. Chạy notebook**
-- Mở file `Copy_of_ISAS_BEST(2).ipynb` bằng Jupyter Notebook (local, không dùng Google Colab)
-- Chạy tuần tự từ cell đầu đến cell cuối để:
-  - Gắn nhãn dữ liệu keypoint cho 5 participant dựa vào timetable
-  - Sinh các window nhỏ (30 frames) và lớn (120 frames) với overlap 0.5
-  - Trích xuất feature cho từng window
-  - Xây dựng model Extra Trees và thực hiện LOSO evaluation trên đủ 5 người
-
-**4. Lưu ý khi chạy local**
-- Đường dẫn tới dữ liệu trong notebook phải là `Train_Data/...` (không dùng đường dẫn Google Drive/Colab)
-- Nếu gặp lỗi về đường dẫn, kiểm tra lại vị trí folder `Train_Data` cùng cấp với notebook
-
-**5. Kết quả**
-- Notebook sẽ tự động thực hiện toàn bộ pipeline: từ gắn nhãn, feature engineering, training, đến đánh giá LOSO cho 5 người
-- Kết quả accuracy, F1-score, confusion matrix sẽ được hiển thị cuối notebook
+### 2. **Chạy trên Google Colab**
+- **Notebook:** `Copy_of_ISAS_BEST_(2).ipynb`
+- **Đường dẫn dữ liệu:**
+  ```python
+  base_path = '/content/drive/MyDrive/ISAS/'
+  train_data_path = os.path.join(base_path, 'Train_Data')
+  ```
+- **Yêu cầu:**
+  - Mount Google Drive và đảm bảo dữ liệu nằm đúng vị trí trên Drive
+  - Chạy notebook trên Colab để thực hiện pipeline tương tự
 
 ---
 
-**Nếu bạn cần tải lại dataset hoặc gặp vấn đề về đường dẫn, hãy liên hệ quản trị viên hoặc xem hướng dẫn chi tiết trong notebook.**
+**Lưu ý:**
+- Hai notebook trên là tương đương về nội dung, chỉ khác nhau về đường dẫn và môi trường chạy (local vs. Colab).
+- Đảm bảo cài đặt đủ các thư viện trong `requirements.txt` trước khi chạy local.
+- Nếu gặp lỗi về đường dẫn, kiểm tra lại vị trí folder `Train_Data` và cập nhật biến `base_path` cho phù hợp.
 
 ---
 
-*Chạy notebook này là đủ để tái hiện toàn bộ quy trình xây dựng model và đánh giá LOSO trên 5 participant với dữ liệu ISAS.* 
+*Vui lòng chọn đúng notebook và cấu hình đường dẫn phù hợp với môi trường bạn sử dụng!* 
